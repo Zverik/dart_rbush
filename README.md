@@ -62,7 +62,7 @@ final tree = RBushBase<MyItem>(
 
 ### K Nearest Neighbours
 
-The [RBushBase] class also includes a [knn] method for the nearest neighbours
+The `RBushBase` class also includes a `knn()` method for the nearest neighbours
 search. This is especially useful when using the r-tree to store point features,
 like in the example above.
 
