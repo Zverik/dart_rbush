@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:rbush/rbush.dart';
-import 'package:collection/collection.dart';
 
 RBushElement listToBBox(List<double> list) {
   return RBushElement(minX: list[0], minY: list[1], maxX: list[2], maxY: list[3]);
@@ -21,6 +20,16 @@ final data = <List<double>>[
   [1,14,1,14],[33,77,34,77],[94,56,98,59],[75,25,78,26],[17,73,20,74],[11,3,12,4],[45,12,47,12],[38,39,39,39],
   [99,3,103,5],[41,92,44,96],[79,40,79,41],[29,2,29,4],
 ].map((list) => listToBBox(list)).toList();
+
+// Copied from `collections` package to reduce dependencies.
+extension IndexedListExtension<E> on List<E> {
+  /// Maps each element and its index to a new value.
+  Iterable<R> mapIndexed<R>(R Function(int index, E element) convert) sync* {
+    for (var index = 0; index < length; index++) {
+      yield convert(index, this[index]);
+    }
+  }
+}
 
 void main() {
   test('finds n neighbours', () {
