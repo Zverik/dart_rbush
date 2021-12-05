@@ -20,11 +20,11 @@ class RBushBase<T> {
 
   /// Constructs a new r-tree with items of type [T].
   /// Each leaf would have at most [maxEntries] items.
-  /// 
+  ///
   /// Use [load] to bulk load items into this tree, or
   /// [insert] to append one by one. After that use [search]
   /// and [knn] for searching inside the tree.
-  /// 
+  ///
   /// Specify [toBBox], [getMinX], and [getMinY] to extract
   /// needed information from objects of type [T]. Alternatively,
   /// see [RBush] class for a simpler option.
@@ -152,7 +152,9 @@ class RBushBase<T> {
 
   /// Removes a single item from the tree.
   /// Does nothing if the item is not there.
-  remove(T item) {
+  remove(T? item) {
+    if (item == null) return;
+
     _RBushNode<T>? node = data;
     final bbox = toBBox(item);
     List<_RBushNode<T>> path = [];
@@ -203,16 +205,17 @@ class RBushBase<T> {
   }
 
   /// K-nearest neighbors search.
-  /// 
+  ///
   /// For a given ([x], [y]) location, returns [k] nearest items,
   /// sorted by distance to their bounding boxes.
-  /// 
+  ///
   /// Use [maxDistance] to filter by distance as well.
   /// Use [predicate] function to filter by item properties.
-  List<T> knn(double x, double y, int k, {bool Function(T item)? predicate, double? maxDistance}) {
+  List<T> knn(double x, double y, int k,
+      {bool Function(T item)? predicate, double? maxDistance}) {
     final List<T> result = [];
     if (k <= 0) return result;
-    
+
     _RBushNode<T> node = data;
     final queue = TinyQueue<_KnnElement<T>>([]);
 
@@ -562,6 +565,12 @@ class RBushBox {
     this.maxY = double.negativeInfinity,
   });
 
+  RBushBox.fromList(List<dynamic> bbox)
+      : minX = bbox[0].toDouble(),
+        minY = bbox[1].toDouble(),
+        maxX = bbox[2].toDouble(),
+        maxY = bbox[3].toDouble();
+
   /// Extends this box's bounds to cover [b].
   extend(RBushBox b) {
     minX = min(minX, b.minX);
@@ -610,7 +619,11 @@ class RBushBox {
   }
 
   double _axisDist(double k, double min, double max) {
-    return k < min ? min - k : k <= max ? 0 : k - max;
+    return k < min
+        ? min - k
+        : k <= max
+            ? 0
+            : k - max;
   }
 
   @override
@@ -638,7 +651,8 @@ class _RBushNode<T> extends RBushBox {
   bool leaf;
 
   _RBushNode(this.children, [List<T>? leafChildren])
-      : leaf = children.isEmpty, leafChildren = leafChildren ?? [];
+      : leaf = children.isEmpty,
+        leafChildren = leafChildren ?? [];
 
   int get childrenLength => leaf ? leafChildren.length : children.length;
 
@@ -677,9 +691,9 @@ class _KnnElement<T> implements Comparable<_KnnElement> {
   int compareTo(other) => dist.compareTo(other.dist);
 }
 
-/// An r-tree for [RBushElement]: convenience class
+/// An r-tree for [RBushElement]: a convenience class
 /// that does not make you write accessor functions.
-class RBush extends RBushBase<RBushElement> {
+class RBush<T> extends RBushBase<RBushElement<T>> {
   RBush([int maxEntries = 9])
       : super(
           maxEntries: maxEntries,
@@ -689,15 +703,66 @@ class RBush extends RBushBase<RBushElement> {
         );
 }
 
+/// A convenient r-tree for working directly with data objects, uncoupling
+/// these from bounding boxes. Encapsulates [RBush], so for bulk inserts
+/// this class still needs a list of [RBushElement]s.
+class RBushDirect<T> {
+  final RBush<T> _tree;
+  final Map<T, RBushElement<T>> _boxes = {};
+
+  RBushDirect([int maxEntries = 9]) : _tree = RBush<T>(maxEntries);
+
+  List<T> all() => _tree.all().map((e) => e.data).toList();
+  List<T> search(RBushBox bbox) =>
+      _tree.search(bbox).map((e) => e.data).toList();
+  bool collides(RBushBox bbox) => _tree.collides(bbox);
+  clear() => _tree.clear();
+  remove(T? item) => _tree.remove(_boxes[item]);
+
+  List<T> knn(double x, double y, int k,
+          {bool Function(T item)? predicate, double? maxDistance}) =>
+      _tree
+          .knn(x, y, k,
+              predicate: (e) => predicate == null || predicate(e.data),
+              maxDistance: maxDistance)
+          .map((e) => e.data)
+          .toList();
+
+  RBushDirect<T> load(Iterable<RBushElement<T>> items) {
+    if (items.any((item) => _boxes.containsKey(item))) {
+      throw StateError('Cannot have duplicates in the tree, use RBush class for that.');
+    }
+    _tree.load(items);
+    _boxes.addAll({for (final i in items) i.data: i});
+    return this;
+  }
+
+  insert(RBushBox bbox, T item) {
+    if (_boxes.containsKey(item)) {
+      throw StateError('Cannot have duplicate $item in the tree, use RBush class for that.');
+    }
+    final element = RBushElement(
+        minX: bbox.minX,
+        minY: bbox.minY,
+        maxX: bbox.maxX,
+        maxY: bbox.maxY,
+        data: item);
+    _tree.insert(element);
+    _boxes[item] = element;
+  }
+}
+
 /// A container for your data, to be used with [RBush].
-class RBushElement extends RBushBox {
-  final dynamic data;
+class RBushElement<T> extends RBushBox {
+  final T data;
 
   RBushElement({
     required double minX,
     required double minY,
     required double maxX,
     required double maxY,
-    this.data,
+    required this.data,
   }) : super(minX: minX, maxX: maxX, minY: minY, maxY: maxY);
+
+  RBushElement.fromList(List<dynamic> bbox, this.data) : super.fromList(bbox);
 }

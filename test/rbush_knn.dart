@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:rbush/rbush.dart';
 
 RBushElement listToBBox(List<double> list) {
-  return RBushElement(minX: list[0], minY: list[1], maxX: list[2], maxY: list[3]);
+  return RBushElement(minX: list[0], minY: list[1], maxX: list[2], maxY: list[3], data: 0);
 }
 
 final data = <List<double>>[

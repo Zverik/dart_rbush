@@ -4,14 +4,12 @@ import 'package:rbush/rbush.dart';
 List<RBushElement> someData(int n) {
   final List<RBushElement> data = [];
   for (double i = 0; i < n; i++) {
-    data.add(RBushElement(minX: i, minY: i, maxX: i, maxY: i));
+    data.add(RBushElement(minX: i, minY: i, maxX: i, maxY: i, data: i));
   }
   return data;
 }
 
-RBushElement listToBBox(List<double> list) {
-  return RBushElement(minX: list[0], minY: list[1], maxX: list[2], maxY: list[3]);
-}
+RBushElement listToBBox(List<double> list) => RBushElement.fromList(list, 0);
 
 final data = <List<double>>[
   [0, 0, 0, 0], [10, 10, 10, 10], [20, 20, 20, 20], [25, 0, 25, 0], [35, 10, 35, 10],
@@ -142,6 +140,45 @@ void main() {
         MyItem(minLng: -115, minLat: -55, maxLng: -105, maxLat: -45),
       ]),
     );
+  });
+
+  test('RBushDirect returns custom data types', () {
+    final tree = RBushDirect<int>(4);
+
+    final data = [
+      RBushElement.fromList([-115, 45, -105, 55], 1),
+      RBushElement.fromList([105, 45, 115, 55], 2),
+      RBushElement.fromList([105, -55, 115, -45], 3),
+    ];
+
+    tree.load(data);
+    tree.insert(RBushBox.fromList([-115, -55, -105, -45]), 4);
+
+    expect(tree.all(), unorderedEquals([1, 2, 3, 4]));
+
+    expect(
+      tree.search(RBushBox(minX: -180, minY: -90, maxX: 180, maxY: 90)),
+      unorderedEquals([1, 2, 3, 4]),
+    );
+
+    expect(
+      tree.search(RBushBox(minX: -180, minY: -90, maxX: 0, maxY: 90)),
+      unorderedEquals([1, 4]),
+    );
+
+    expect(
+      tree.collides(RBushBox(minX: -180, minY: -90, maxX: 0, maxY: 90)),
+      isTrue,
+    );
+
+    tree.remove(3);
+    expect(tree.all(), unorderedEquals([1, 2, 4]));
+
+    expect(() => tree.insert(RBushBox.fromList([0, 0, 1, 1]), 1), throwsStateError,
+        reason: 'no duplicates in RBushDirect');
+
+    tree.clear();
+    expect(tree.all(), isEmpty);
   });
 
   test('#load bulk-loads the given data given max node entries and forms a proper search tree', () {
