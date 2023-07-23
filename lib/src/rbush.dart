@@ -458,8 +458,10 @@ class RBushBase<T> {
     final getter = sortByMinX ? getMinX : getMinY;
     if (sortByMinX) {
       node.children.sort((a, b) => a.minX.compareTo(b.minX));
-      node.leafChildren.sort((a, b) => getter(a).compareTo(getter(b)));
+    } else {
+      node.children.sort((a, b) => a.minY.compareTo(b.minY));
     }
+    node.leafChildren.sort((a, b) => getter(a).compareTo(getter(b)));
   }
 
   double _addDistMargin(_RBushNode<T> node, int m, int M, bool sortByMinX) {
@@ -730,7 +732,8 @@ class RBushDirect<T> {
 
   RBushDirect<T> load(Iterable<RBushElement<T>> items) {
     if (items.any((item) => _boxes.containsKey(item))) {
-      throw StateError('Cannot have duplicates in the tree, use RBush class for that.');
+      throw StateError(
+          'Cannot have duplicates in the tree, use RBush class for that.');
     }
     _tree.load(items);
     _boxes.addAll({for (final i in items) i.data: i});
@@ -739,7 +742,8 @@ class RBushDirect<T> {
 
   insert(RBushBox bbox, T item) {
     if (_boxes.containsKey(item)) {
-      throw StateError('Cannot have duplicate $item in the tree, use RBush class for that.');
+      throw StateError(
+          'Cannot have duplicate $item in the tree, use RBush class for that.');
     }
     final element = RBushElement(
         minX: bbox.minX,
