@@ -1,7 +1,8 @@
 // Copyright (c) 2021 Ilya Zverev, (c) 2020 Vladimir Agafonkin.
 // Port of https://github.com/mourner/rbush and https://github.com/mourner/rbush-knn.
 // Use of this code is governed by an ISC license, see the LICENSE file.
-import 'dart:math' show min, max, log, pow, sqrt;
+import 'dart:math' show min, max, log, pow, sqrt, Random;
+import 'package:collection/collection.dart';
 
 import 'quickselect.dart';
 import 'tinyqueue.dart';
@@ -311,6 +312,31 @@ class RBushBase<T> {
     }
     _calcBBox(node);
     return node;
+  }
+
+  void test() {
+    var ri = Random();
+    int n = 100000;
+    for (var i = 0; i < n; i++) {
+      double lat = ri.nextDouble() * 180 - 90;
+      double lng = ri.nextDouble() * 360 - 180;
+      insert(RBushElement.fromList([lat, lng, lat, lng], null) as T);
+    }
+    _RBushNode node = data;
+    final List<_RBushNode> nodesToSearch = [];
+    final observations = <num>[];
+    while (true) {
+      observations.add(log((node.maxX - node.minX) / (node.maxY - node.minY)));
+      // print(
+      //     "stats: ${node.height} ${node.leaf ? node.leafChildren.length : node.children.length} ${node.minX} ${node.minY} ${node.maxX} ${node.maxY}");
+      if (node.leaf) {
+      } else {
+        nodesToSearch.addAll(node.children);
+      }
+      if (nodesToSearch.isEmpty) break;
+      node = nodesToSearch.removeLast();
+    }
+    assert(observations.average.abs() < 0.1);
   }
 
   _RBushNode<T> _chooseSubtree(
