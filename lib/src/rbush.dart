@@ -252,6 +252,56 @@ class RBushBase<T> {
     return result;
   }
 
+  /// K-nearest neighbors search.
+  ///
+  /// For a given ([x], [y]) location, returns [k] nearest items,
+  /// sorted by distance to their bounding boxes.
+  ///
+  /// Use [maxDistance] to filter by distance as well.
+  /// Use [predicate] function to filter by item properties.
+  List<T> knn2(int k, {
+    required double? Function(RBushBox bbox, T? item) distance,
+    bool Function(T item)? predicate,
+  }) {
+    final List<T> result = [];
+    if (k <= 0) return result;
+
+    _RBushNode<T> node = data;
+    final queue = TinyQueue<_KnnElement<T>>([]);
+
+    while (true) {
+      if (node.leaf) {
+        for (final child in node.leafChildren) {
+          final dist = distance(toBBox(child), child);
+          if (dist != null) {
+            queue.push(_KnnElement(item: child, dist: dist));
+          }
+        }
+      } else {
+        for (final child in node.children) {
+          final dist = distance(child, null);
+          if (dist != null) {
+            queue.push(_KnnElement(node: child, dist: dist));
+          }
+        }
+      }
+
+      while (queue.isNotEmpty && queue.peek().item != null) {
+        T candidate = queue.pop().item!;
+        if (predicate == null || predicate(candidate)) {
+          result.add(candidate);
+        }
+        if (k > 0 && result.length == k) return result;
+      }
+
+      if (queue.isEmpty) break;
+      if (queue.peek().node == null) break;
+      node = queue.pop().node!;
+    }
+
+    return result;
+  }
+
   List<T> _all(_RBushNode<T> node, List<T> result) {
     final List<_RBushNode<T>> nodesToSearch = [];
     while (true) {
