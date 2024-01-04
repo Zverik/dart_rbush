@@ -241,7 +241,7 @@ class RBushBase<T> {
         if (predicate == null || predicate(candidate)) {
           result.add(candidate);
         }
-        if (k > 0 && result.length == k) return result;
+        if (result.length == k) return result;
       }
 
       if (queue.isEmpty) break;
@@ -254,10 +254,13 @@ class RBushBase<T> {
 
   /// K-nearest neighbors search.
   ///
-  /// For a given ([x], [y]) location, returns [k] nearest items,
+  /// Given distance() function, returns [k] nearest items,
   /// sorted by distance to their bounding boxes.
   ///
-  /// Use [maxDistance] to filter by distance as well.
+  /// Use [distance] to filter by distance. It gets an item and its
+  /// bounding box for the input, with null item for non leaf nodes.
+  /// [distance] returns distance to the item or bbox or null if
+  /// distance is not within acceptable range.
   /// Use [predicate] function to filter by item properties.
   List<T> knn2(int k, {
     required double? Function(T? item, RBushBox bbox) distance,
@@ -293,7 +296,7 @@ class RBushBase<T> {
         if (predicate == null || predicate(candidate, elem.dist)) {
           result.add(candidate);
         }
-        if (k > 0 && result.length == k) return result;
+        if (result.length == k) return result;
       }
 
       if (queue.isEmpty) break;
