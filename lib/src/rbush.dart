@@ -260,8 +260,8 @@ class RBushBase<T> {
   /// Use [maxDistance] to filter by distance as well.
   /// Use [predicate] function to filter by item properties.
   List<T> knn2(int k, {
-    required double? Function(RBushBox bbox, T? item) distance,
-    bool Function(T item)? predicate,
+    required double? Function(T? item, RBushBox bbox) distance,
+    bool Function(T item, double dist)? predicate,
   }) {
     final List<T> result = [];
     if (k <= 0) return result;
@@ -272,14 +272,14 @@ class RBushBase<T> {
     while (true) {
       if (node.leaf) {
         for (final child in node.leafChildren) {
-          final dist = distance(toBBox(child), child);
+          final dist = distance(child, toBBox(child));
           if (dist != null) {
             queue.push(_KnnElement(item: child, dist: dist));
           }
         }
       } else {
         for (final child in node.children) {
-          final dist = distance(child, null);
+          final dist = distance(null, child);
           if (dist != null) {
             queue.push(_KnnElement(node: child, dist: dist));
           }
@@ -287,8 +287,10 @@ class RBushBase<T> {
       }
 
       while (queue.isNotEmpty && queue.peek().item != null) {
-        T candidate = queue.pop().item!;
-        if (predicate == null || predicate(candidate)) {
+        final elem = queue.pop();
+        // ignore: null_check_on_nullable_type_parameter
+        final candidate = elem.item!;
+        if (predicate == null || predicate(candidate, elem.dist)) {
           result.add(candidate);
         }
         if (k > 0 && result.length == k) return result;
