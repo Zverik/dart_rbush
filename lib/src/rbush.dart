@@ -255,14 +255,14 @@ class RBushBase<T> {
   /// K-nearest neighbors search.
   ///
   /// Given distance() function, returns [k] nearest items,
-  /// sorted by distance to their bounding boxes.
+  /// sorted by distance to items.
   ///
   /// Use [distance] to filter by distance. It gets an item and its
-  /// bounding box for the input, with null item for non leaf nodes.
+  /// bounding box for the input, with null item for non leaf node.
   /// [distance] returns distance to the item or bbox or null if
   /// distance is not within acceptable range.
   /// Use [predicate] function to filter by item properties.
-  List<T> knn2(int k, {
+  List<T> knnGeneric(int k, {
     required double? Function(T? item, RBushBox bbox) distance,
     bool Function(T item, double dist)? predicate,
   }) {
